@@ -23,22 +23,27 @@ A lightweight PHP web application for guest check-in via QR code scanning, now c
 
 1. **Navigate to the project directory:**
    ```bash
+   git clone https://github.com/oli4vr/GuestFlow.git
+   ```
+
+2. **Navigate to the project directory:**
+   ```bash
    cd GuestFlow
    ```
 
-2. **Build the Docker image:**
+3. **Build the Docker image:**
    ```bash
    sudo make build
    ```
    This creates a Docker image with the application, SSL certificates, and default guest list.
 
-3. **Start the container:**
+4. **Start the container:**
    ```bash
    sudo make run
    ```
    This starts the container and maps ports 8080 (HTTP) and 8443 (HTTPS).
 
-4. **Access the application:**
+5. **Access the application:**
    Open your browser and go to: **https://localhost:8443/**
 
 ---
