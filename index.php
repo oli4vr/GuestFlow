@@ -1,34 +1,33 @@
 <?php
 /* GuestFlow
- * Contrôle des invités à une réception
+ * Guest Check-in via QR Code
  * 
- * Le contrôle est basé sur la lecture d'un QR code
+ * The check-in is based on QR code scanning
  * 
- * Ce QR code qui est aussi utilisé par l'invité pour s'inscrire contient de nombreuses informations.
- * On exploite ici uniquement le qr_unique
+ * This QR code, also used by guests for registration, contains various information.
+ * Here we only use the qr_unique parameter.
  * 
- * L'invité reçoit aussi une confirmation d'inscription par e-mail qui contient un QR code.
- * Ce QR code simplifié contient aussi le qr_unique
+ * Guests also receive an email confirmation containing a QR code.
+ * This simplified QR code also contains the qr_unique.
  * 
- * Le fichier reception.csv contient la liste des invités
- * qr unique | nom | prénom
+ * The reception.csv file contains the guest list
+ * qr_unique | last_name | first_name
  * 
- * Une création cybermonde.org
+ * Created by cybermonde.org
 */
 
-// Fichier des invités
+// Guest list file and language configuration
 include 'includes/config.php';
 
-// Fonction pour mettre à jour la présence
+// Function to update presence status
 function updatePresence($file, $id) {
     $rows = [];
     $found = false;
     $alreadyPresent = false;
     $person = ["nom" => "", "prenom" => ""];
-	// Normalisation du qr_unique : uniquement A-Z et 0-9
-	$id = strtoupper($id);                 // force en majuscules
+	// Normalize qr_unique: only A-Z and 0-9
+	$id = strtoupper($id);                 // force to uppercase
 	$id = preg_replace('/[^A-Z0-9]/', '', $id);
-
 
     if (($handle = fopen($file, "r")) !== false) {
         while (($data = fgetcsv($handle, 1000, ",")) !== false) {
@@ -67,18 +66,17 @@ if (isset($_POST['identifier'])) {
     parse_str($parsedUrl['query'] ?? '', $params);
     $id = $params['qr_unique'] ?? '';
 
-   if ($id === '') {
-    echo json_encode([
-        "status" => "invalid",
-        "scanned_url" => $url
-    ]);
-    exit;
-	}
+    if ($id === '') {
+        echo json_encode([
+            "status" => "invalid",
+            "scanned_url" => $url
+        ]);
+        exit;
+    }
 
+    $result = updatePresence($csvFile, $id);
 
-   $result = updatePresence($csvFile, $id);
-
-// Enrichit la réponse avec les infos utiles
+// Enrich response with useful info
 $result['scanned_url'] = $url;
 $result['qr_unique'] = $id;
 
@@ -89,25 +87,27 @@ exit;
 ?>
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo $lang_code; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GuestFlow</title>
+    <title><?php echo htmlspecialchars($lang_strings['title']); ?></title>
     <script src="js/html5-qrcode.js" type="text/javascript"></script>
     <link rel="stylesheet" href="includes/guestflow.css">
 </head>
 <body>
-    <header>GuestFlow</header>
+    <header><?php echo htmlspecialchars($lang_strings['header']); ?></header>
 
     <div id="reader"></div>
     <div id="message"></div>
+    <button id="startCameraBtn" style="display: none; margin: 20px auto; padding: 15px 30px; font-size: 1.2em; cursor: pointer;"><?php echo htmlspecialchars($lang_strings['enable_camera']); ?></button>
 
-    <footer>cybermonde.org - version 0.1 <a href="admin.php" title="Accès administration" class="admin-link">🔒</a></footer>
+    <footer>cybermonde.org - version 0.1 <a href="admin.php?lang=<?php echo $lang; ?>" title="<?php echo htmlspecialchars($lang_strings['admin_link']); ?>" class="admin-link">🔒</a></footer>
 
-    <script>
+   <script>
         const messageBox = document.getElementById("message");
-        let scanEnabled = true; // empêche le rescannage trop rapide
+        let scanEnabled = true;
+        let html5QrCode = null;
 
         function showMessage(text, cssClass, duration = 3000) {
             messageBox.textContent = text;
@@ -118,7 +118,7 @@ exit;
         }
 
         function onScanSuccess(decodedText) {
-            if (!scanEnabled) return; // ignore si un scan vient d’avoir lieu
+            if (!scanEnabled) return;
             scanEnabled = false;
 
             fetch("", {
@@ -129,36 +129,40 @@ exit;
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    showMessage("✅ Présence enregistrée : " + data.prenom + " " + data.nom, "success", 3000);
+                    showMessage("<?php echo addslashes($lang_strings['checkin_success']); ?>".replace('%s', data.prenom).replace('%s', data.nom), "success", 3000);
                 } else if (data.status === "already_present") {
-                    showMessage("⚠️ Déjà scanné : " + data.prenom + " " + data.nom, "already", 3000);
+                    showMessage("<?php echo addslashes($lang_strings['checkin_duplicate']); ?>".replace('%s', data.prenom).replace('%s', data.nom), "already", 3000);
                 } else if (data.status === "not_found") {
-				showMessage("❌ QR unique introuvable : " + data.qr_unique, "error", 3000);
-			} else if (data.status === "invalid") {
-				showMessage("❌ QR code invalide : " + data.scanned_url, "error", 3000);
-			}
-
+                    showMessage("<?php echo addslashes($lang_strings['checkin_not_found']); ?>".replace('%s', data.qr_unique), "error", 3000);
+                } else if (data.status === "invalid") {
+                    showMessage("<?php echo addslashes($lang_strings['checkin_invalid']); ?>".replace('%s', data.scanned_url), "error", 3000);
+                }
             })
-            .catch(() => showMessage("❌ Erreur de communication.", "error"))
+            .catch(() => showMessage("<?php echo addslashes($lang_strings['checkin_error']); ?>", "error"))
             .finally(() => {
-                // Réactive le scan après 3 secondes
                 setTimeout(() => { scanEnabled = true; }, 3000);
             });
         }
 
-        const html5QrCode = new Html5Qrcode("reader");
+        function startCamera() {
+            const isMobile = window.innerWidth < 600;
+            const config = { fps: 10, qrbox: isMobile ? 200 : 300 };
 
-        const isMobile = window.innerWidth < 600;
-        const config = { fps: 10, qrbox: isMobile ? 200 : 300 };
+            html5QrCode = new Html5Qrcode("reader");
 
-        html5QrCode.start(
-            { facingMode: { exact: "environment" } }, // Caméra arrière
-            config,
-            onScanSuccess
-        ).catch(err => {
-            console.error("Erreur caméra :", err);
-            showMessage("⚠️ Impossible d’accéder à la caméra.", "error");
-        });
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess
+            ).catch(err => {
+                console.error("Camera error:", err);
+                showMessage("<?php echo addslashes($lang_strings['camera_error']); ?>".replace('%s', err.message), "error");
+            });
+        }
+
+        startCamera();
+
+        document.getElementById("startCameraBtn").addEventListener("click", startCamera);
     </script>
 </body>
 </html>

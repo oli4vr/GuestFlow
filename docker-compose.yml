@@ -1,0 +1,15 @@
+services:
+  guestflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: guestflow
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - /data:/data
+    restart: unless-stopped
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data

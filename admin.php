@@ -1,13 +1,13 @@
 <?php
 // admin.php
 
-// Fichier des invités
+// Guest list file and language configuration
 include 'includes/config.php';
 
 $present = 0;
 $total = 0;
 
-// Vérification du fichier CSV
+// Check CSV file
 if (file_exists($csvFile) && ($handle = fopen($csvFile, 'r')) !== false) {
     while (($data = fgetcsv($handle)) !== false) {
         if (count($data) < 3) continue;
@@ -22,34 +22,34 @@ if (file_exists($csvFile) && ($handle = fopen($csvFile, 'r')) !== false) {
 $absents = max(0, $total - $present);
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo $lang_code; ?>">
 <head>
 <meta charset="UTF-8">
-<title>Administration - Statistiques de présence</title>
+<title><?php echo htmlspecialchars($lang_strings['admin_title']); ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="js/chart.js"></script>
 <link rel="stylesheet" href="includes/guestflow.css">
 </head>
 <body>
 
-<header>GuestFlow - Administration</header>
+<header><?php echo htmlspecialchars($lang_strings['admin_header']); ?></header>
 
 <main>
     <canvas id="presenceChart"></canvas>
 
     <div id="stats">
-        Présents : <?= $present ?> / <?= $total ?> invités
+        <?php printf($lang_strings['stats_present'], $present, $total); ?>
     </div>
 </main>
 
-<footer>cybermonde.org - version 0.1 <a href="index.php" title="Accueil" class="admin-link">🏠</a></footer>
+<footer>cybermonde.org - version 0.1 <a href="index.php?lang=<?php echo $lang; ?>" title="<?php echo htmlspecialchars($lang_strings['home_link']); ?>" class="admin-link">🏠</a></footer>
 
 <script>
 const ctx = document.getElementById('presenceChart').getContext('2d');
 new Chart(ctx, {
     type: 'pie',
     data: {
-        labels: ['Présents', 'Absents'],
+        labels: ['<?php echo $lang_strings['chart_present']; ?>', '<?php echo $lang_strings['chart_absent']; ?>'],
         datasets: [{
             data: [<?= $present ?>, <?= $absents ?>],
             backgroundColor: ['#4caf50', '#f44336'],
