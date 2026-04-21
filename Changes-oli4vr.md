@@ -120,7 +120,6 @@ gfdocker/
 - `/data/` - Runtime files (mounted to host `/data`)
 
 **Build context:**
-- All source files in `/home/olivier/cdev/pfb/gfdocker/`
 - Docker image is self-contained (no external dependencies)
 - SSL certificates included in `/defaults/`
 
@@ -162,7 +161,7 @@ gfdocker/
 
 **Quick start:**
 ```bash
-cd /home/olivier/cdev/pfb/gfdocker
+cd gfdocker
 make build
 make run
 ```
