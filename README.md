@@ -23,7 +23,7 @@ A lightweight PHP web application for guest check-in via QR code scanning, now c
 
 1. **Navigate to the project directory:**
    ```bash
-   cd gfdocker
+   cd GuestFlow
    ```
 
 2. **Build the Docker image:**
