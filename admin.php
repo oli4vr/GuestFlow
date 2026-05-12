@@ -12,7 +12,7 @@ if (file_exists($csvFile) && ($handle = fopen($csvFile, 'r')) !== false) {
     while (($data = fgetcsv($handle)) !== false) {
         if (count($data) < 3) continue;
         $total++;
-        if (trim(strtolower($data[3])) === 'présent') {
+        if (isset($data[3]) && trim(strtolower($data[3])) === 'présent') {
             $present++;
         }
     }

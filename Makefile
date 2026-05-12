@@ -7,17 +7,17 @@ CONTAINER_NAME = guestflow
 
 build:
 	@echo "Building Docker image..."
-	docker-compose build --no-cache
+	docker compose build --no-cache
 	@echo "Build complete. Image: $(IMAGE_NAME)"
 
 run:
 	@echo "Starting GuestFlow container..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "Container started. Access at https://localhost:8443/"
 
 stop:
 	@echo "Stopping container..."
-	docker-compose down 2>/dev/null || true
+	docker compose down 2>/dev/null || true
 
 clean: stop
 	@echo "Cleaning up..."
@@ -26,7 +26,7 @@ clean: stop
 	@echo "Cleanup complete"
 
 logs:
-	@docker-compose logs -f 2>/dev/null || echo "Container not running"
+	@docker compose logs -f 2>/dev/null || echo "Container not running"
 
 # Generate self-signed certificates for testing
 certs:

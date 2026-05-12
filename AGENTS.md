@@ -2,54 +2,47 @@
 
 ## Architecture
 
-Simple PHP app for guest check-in via QR code scanning:
+PHP 8.2 app for guest check-in via QR code scanning. Dockerized with `php:8.2-apache`.
 
-- **`index.php`** - Main scanning interface (QR reader + backend API)
-- **`admin.php`** - Statistics dashboard (pie chart of attendance)
-- **`includes/config.php`** - Environment-aware CSV path configuration
-- **`data/reception.csv`** - Guest list: `qr_unique,nom,prenom,presence_status`
+- **`index.php`** — QR scanner UI + POST API (scanning + presence update)
+- **`admin.php`** — Attendance pie chart (Chart.js), Présents vs Absents
+- **`includes/config.php`** — Sets `$csvFile = '/data/reception.csv'`, loads language files
+- **`includes/lang-{en,fr,nl}.php`** — Translations, selected via `?lang=en|fr|nl`
+- **`data/reception.csv`** — `qr_unique,nom,prenom,presence_status` (no header row)
 
 ## Critical Details
 
-### CSV Format & Presence Tracking
-- File: `data/reception.csv`
-- Columns: `qr_unique,nom,prenom,presence_status`
-- Presence marked as `présent` (case-insensitive check in `admin.php`)
-- QR codes are normalized: uppercase, alphanumeric only (`preg_replace('/[^A-Z0-9]/', '', $id)`)
-
-### Environment Detection
-`includes/config.php:12-22` checks server IP/name to select CSV path:
-- LAN (`192.168.*`): `/var/www/data/reception.csv`
-- Public domain (`guestflow.domaine.tld`): `../data/reception.csv`
-- Unknown env: **script dies** - ensure proper `SERVER_NAME` or `SERVER_ADDR`
+### CSV & Presence
+- `presence_status` is set to `présent` on check-in
+- `admin.php` uses **case-insensitive** check (`trim(strtolower($data[3])) === 'présent'`)
+- `index.php` uses **case-sensitive** check (`trim($data[3]) === "présent"`)
+- QR normalized: `strtoupper()` + `preg_replace('/[^A-Z0-9]/', '', $id)` — only A-Z, 0-9
 
 ### Scan Workflow
-1. User scans QR code via `html5-qrcode.js` (uses rear camera on mobile)
-2. Extracts `qr_unique` query param from URL
-3. POST to `index.php` → updates CSV → returns JSON status:
-   - `success`: newly checked in
-   - `already_present`: already scanned
-   - `not_found`: invalid QR code
-4. Cooldown: 3 seconds between scans (`scanEnabled` flag)
+1. POST to `index.php` with `identifier` (the scanned URL)
+2. Server extracts `qr_unique` query param, normalizes it, updates CSV
+3. Returns JSON: `success` / `already_present` / `not_found` / `invalid`
+4. 3-second cooldown between scans (`scanEnabled` flag in JS)
 
-### Dependencies
-- JS: `js/html5-qrcode.js`, `js/chart.js` (for admin)
-- CSS: `includes/guestflow.css`
-- No composer.json - pure PHP5+ with no external dependencies
+### Language
+- `?lang=en|fr|nl` in URL; persisted across pages via query param
+- Sanitized: `preg_replace('/[^a-z]/', '', $lang)` — lowercase letters only
+- Defaults to `en`
 
-## Common Pitfalls
+### Deployment (Docker)
+- `make build` → `make run` → https://localhost:8443/
+- `make certs` generates self-signed SSL certs in `ssl/`
+- Host `/data` mounted to container `/data` — CSV and SSL certs persist there
+- Entrypoint copies defaults from `/defaults/` to `/data/` on first run
+- CSV must be writable by `www-data` in the container
 
-- **CSV write permissions**: `config.php:29-31` checks `is_writable()` and dies if false
-- **QR normalization**: The `qr_unique` in CSV must match normalized format (uppercase, no special chars)
-- **Camera access**: Requires HTTPS or localhost; mobile browsers block HTTP camera access
-- **No authentication**: Admin page has no login - secure via obscurity only (footer link 🔒)
+### No build/test/lint steps
+- Pure PHP files + vendored JS (`js/html5-qrcode.js`, `js/chart.js`)
+- Local dev: `php -S localhost:8000` (but camera needs HTTPS)
+- Admin page has no auth — only linked via 🔒 in footer
 
-## Development
-
-- No build/test/lint steps - edit PHP files directly
-- Test locally with PHP built-in server: `php -S localhost:8000`
-- Admin chart shows: Présents vs Absents count
-
-## License
-
-GPL-3.0
+## Gotchas
+- Camera requires HTTPS or localhost — mobile browsers block HTTP camera
+- Self-signed cert = browser warning on first visit
+- `data/reception.csv` has **no header row** — first line is data
+- `config.php` calls `die()` if CSV does not exist or is not writable
