@@ -13,9 +13,8 @@ PHP 8.2 app for guest check-in via QR code scanning. Dockerized with `php:8.2-ap
 ## Critical Details
 
 ### CSV & Presence
-- `presence_status` is set to `présent` on check-in
-- `admin.php` uses **case-insensitive** check (`trim(strtolower($data[3])) === 'présent'`)
-- `index.php` uses **case-sensitive** check (`trim($data[3]) === "présent"`)
+- `presence_status` is set to `1` on check-in, absent entries have no 4th column (or `0` if explicitly set)
+- Both `admin.php` and `index.php` use `trim($data[3]) === '1'`
 - QR normalized: `strtoupper()` + `preg_replace('/[^A-Z0-9]/', '', $id)` — only A-Z, 0-9
 
 ### Scan Workflow

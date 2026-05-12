@@ -36,10 +36,10 @@ function updatePresence($file, $id) {
                 $person["nom"] = $data[1] ?? "";
                 $person["prenom"] = $data[2] ?? "";
 
-                if (isset($data[3]) && trim($data[3]) === "présent") {
+                if (isset($data[3]) && trim($data[3]) === "1") {
                     $alreadyPresent = true;
                 } else {
-                    $data[3] = "présent";
+                    $data[3] = "1";
                 }
             }
             $rows[] = $data;

@@ -16,32 +16,44 @@ A lightweight PHP web application for guest check-in via QR code scanning, now c
 
 ### Prerequisites
 
-- Docker installed on your system
-- Docker Compose (version 2+)
+Install the required Docker packages on a Debian/Ubuntu server:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io docker-buildx docker-compose-v2
+```
+
+Add your user to the `docker` group to run Docker without `sudo`:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
 
 ### Installation
 
-1. **Navigate to the project directory:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/oli4vr/GuestFlow.git
+   cd GuestFlow
    ```
 
-2. **Navigate to the project directory:**
+2. **Generate self-signed SSL certificates (development only):**
    ```bash
-   cd GuestFlow
+   make certs
    ```
 
 3. **Build the Docker image:**
    ```bash
-   sudo make build
+   make build
    ```
-   This creates a Docker image with the application, SSL certificates, and default guest list.
+   This creates a Docker image with the application, SSL certificates, and default guest list using BuildKit (no legacy builder warnings).
 
 4. **Start the container:**
    ```bash
-   sudo make run
+   make run
    ```
-   This starts the container and maps ports 8080 (HTTP) and 8443 (HTTPS).
+   This starts the container and maps ports 8080 (HTTP) and 8443 (HTTPS). The `/data` directory on the host is mounted into the container for persistent storage.
 
 5. **Access the application:**
    Open your browser and go to: **https://localhost:8443/**
@@ -121,14 +133,14 @@ The guest list file (`reception.csv`) uses the following format:
 
 ```
 qr_unique,nom,prenom,presence_status
-ABC123,Smith,John,présent
+ABC123,Smith,John,1
 DEF456,Johnson,Mary
 ```
 
 - **Column 1**: QR unique identifier
 - **Column 2**: Last name (nom)
 - **Column 3**: First name (prénom)
-- **Column 4**: Presence status - `présent` if scanned (empty if not)
+- **Column 4**: Presence status - `1` if scanned, `0` if not yet checked in
 
 ---
 
@@ -152,15 +164,15 @@ For production use, replace the certificates:
 1. **Using Docker:**
    ```bash
    # Stop the container
-   sudo make stop
-   
+   make stop
+
    # Replace certificates in /data/
-   sudo cp your-cert.pem /data/cert.pem
-   sudo cp your-private.key /data/private.key
-   sudo chown www-data:www-data /data/cert.pem /data/private.key
-   
+   cp your-cert.pem /data/cert.pem
+   cp your-private.key /data/private.key
+   chown www-data:www-data /data/cert.pem /data/private.key
+
    # Restart
-   sudo make run
+   make run
    ```
 
 2. **Or generate new self-signed certificates:**
@@ -175,7 +187,7 @@ For production use, replace the certificates:
 | Command | Description |
 |---------|-------------|
 | `make build` | Build Docker image (no cache) |
-| `make run` | Start container via docker-compose |
+| `make run` | Start container via docker compose |
 | `make stop` | Stop and remove container |
 | `make clean` | Stop container and remove image |
 | `make certs` | Generate self-signed SSL certificates |
@@ -185,13 +197,13 @@ For production use, replace the certificates:
 
 ```bash
 # Build and start
-docker-compose up -d --build
+docker compose up -d --build
 
 # Stop
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ---
@@ -262,7 +274,7 @@ gfdocker/
 
 1. **Check logs:**
    ```bash
-   sudo docker logs guestflow
+   docker logs guestflow
    ```
 
 2. **Common issues:**
